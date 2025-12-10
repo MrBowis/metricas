@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculadora de Métricas de Calidad (ISO/CISQ)</title>
+    <style>
+        /* ESTILOS FORMALES Y "SQUARE" (NO LLAMATIVOS) */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h1, h2 {
+            text-transform: uppercase;
+            color: #2c3e50;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .metric-box {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+        }
+        .metric-title {
+            font-weight: bold;
+            color: #444;
+            margin-bottom: 10px;
+            display: block;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+        .input-group {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #bbb;
+            border-radius: 0; /* Aspecto cuadrado */
+            font-family: inherit;
+        }
+        
+        /* TABLA DE RESUMEN EJECUTIVO */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        th, td {
+            border: 1px solid #999;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #2c3e50;
+            color: #fff;
+            text-transform: uppercase;
+            font-weight: normal;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        /* ESTADOS DE CALIDAD (COLORES MUTED/POCO LLAMATIVOS) */
+        .status-good {
+            background-color: #d4edda;
+            color: #155724;
+            font-weight: bold;
+            padding: 2px 5px;
+        }
+        .status-warn {
+            background-color: #fff3cd;
+            color: #856404;
+            font-weight: bold;
+            padding: 2px 5px;
+        }
+        .status-bad {
+            background-color: #f8d7da;
+            color: #721c24;
+            font-weight: bold;
+            padding: 2px 5px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #e9ecef;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #555;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 0;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+        button:hover {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Calculadora de Calidad (Base: ISO 29110 / 25010)</h1>
+    
+    <div class="controls">
+        <span style="font-weight:bold; margin-right:10px;">Cargar Datos Base:</span>
+        <button onclick="loadProjectA()">Proyecto A (SIGB)</button>
+        <button onclick="loadProjectB()">Proyecto B (Microservicios)</button>
+        <button onclick="exportToCSV()" style="float: right; background-color: #2c3e50;">Exportar CSV</button>
+    </div>
+
+    <div class="metrics-grid">
+        <div class="metric-box">
+            <span class="metric-title">1. Procesos (ICP)</span>
+            <div class="input-group">
+                <label>Actividades Planificadas:</label>
+                <input type="number" id="icp_plan" value="15" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Actividades Realizadas:</label>
+                <input type="number" id="icp_real" value="13" oninput="calculate()">
+            </div>
+            <small>Fórmula: (Realizadas / Planificadas) * 100</small>
+        </div>
+
+        <div class="metric-box">
+            <span class="metric-title">2. Gestión (NC - No Conformidades)</span>
+            <div class="input-group">
+                <label>Procesos Auditados:</label>
+                <input type="number" id="nc_audit" value="4" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>NC Detectadas:</label>
+                <input type="number" id="nc_detected" value="1" oninput="calculate()">
+            </div>
+            <small>Fórmula: (Detectadas / Auditados) * 100</small>
+        </div>
+
+        <div class="metric-box">
+            <span class="metric-title">3. Fiabilidad (MTBF)</span>
+            <div class="input-group">
+                <label>Tiempo Operación (Horas):</label>
+                <input type="number" id="mtbf_time" value="168" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Nº Fallos:</label>
+                <input type="number" id="mtbf_fails" value="8" oninput="calculate()">
+            </div>
+            <small>Fórmula: Tiempo Total / Nº Fallos</small>
+        </div>
+
+        <div class="metric-box">
+            <span class="metric-title">4. Rendimiento (TPR)</span>
+            <div class="input-group">
+                <label>Tiempo Total (ms):</label>
+                <input type="number" id="tpr_total" value="5400" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Solicitudes (#):</label>
+                <input type="number" id="tpr_req" value="300" oninput="calculate()">
+            </div>
+            <small>Fórmula: Σ Tiempos / # Solicitudes</small>
+        </div>
+
+        <div class="metric-box">
+            <span class="metric-title">5. Seguridad (IVC)</span>
+            <div class="input-group">
+                <label>Vuln. Totales:</label>
+                <input type="number" id="ivc_total" value="14" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Vuln. Críticas:</label>
+                <input type="number" id="ivc_crit" value="2" oninput="calculate()">
+            </div>
+            <small>Fórmula: (Críticas / Totales) * 100</small>
+        </div>
+
+        <div class="metric-box">
+            <span class="metric-title">6. Mantenibilidad (CC - McCabe)</span>
+            <div class="input-group">
+                <label>Aristas (E):</label>
+                <input type="number" id="cc_e" value="25" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Nodos (N):</label>
+                <input type="number" id="cc_n" value="20" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Componentes (P):</label>
+                <input type="number" id="cc_p" value="1" oninput="calculate()">
+            </div>
+            <small>Fórmula: E - N + 2P</small>
+        </div>
+    </div>
+
+    <h2>Resumen Ejecutivo</h2>
+    <table id="summaryTable">
+        <thead>
+            <tr>
+                <th>Dimensión / Estándar</th>
+                <th>Métrica</th>
+                <th>Resultado</th>
+                <th>Evaluación</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+    </table>
+</div>
+
+<script>
+    function loadProjectA() {
+        document.getElementById('icp_plan').value = 15;
+        document.getElementById('icp_real').value = 13;
+        document.getElementById('nc_audit').value = 4;
+        document.getElementById('nc_detected').value = 1;
+        document.getElementById('mtbf_time').value = 168;
+        document.getElementById('mtbf_fails').value = 8;
+        document.getElementById('tpr_total').value = 5400;
+        document.getElementById('tpr_req').value = 300;
+        document.getElementById('ivc_total').value = 14;
+        document.getElementById('ivc_crit').value = 2;
+        document.getElementById('cc_e').value = 25;
+        document.getElementById('cc_n').value = 20;
+        document.getElementById('cc_p').value = 1;
+        calculate();
+    }
+
+    function loadProjectB() {
+        document.getElementById('icp_plan').value = 10;
+        document.getElementById('icp_real').value = 8;
+        document.getElementById('nc_audit').value = 4;
+        document.getElementById('nc_detected').value = 2;
+        document.getElementById('mtbf_time').value = 300;
+        document.getElementById('mtbf_fails').value = 5;
+        document.getElementById('tpr_total').value = 70000;
+        document.getElementById('tpr_req').value = 1000;
+        document.getElementById('ivc_total').value = 4;
+        document.getElementById('ivc_crit').value = 0;
+        // Basado en Payment Service (aprox E=40, N=35)
+        document.getElementById('cc_e').value = 40;
+        document.getElementById('cc_n').value = 35;
+        document.getElementById('cc_p').value = 1;
+        calculate();
+    }
+
+    function getStatus(value, type) {
+        let text = "";
+        let cssClass = "";
+
+        if (type === 'ICP') {
+            if (value >= 85) { text = "OPTIMIZADO"; cssClass = "status-good"; }
+            else if (value >= 70) { text = "ACEPTABLE"; cssClass = "status-warn"; }
+            else { text = "BAJO"; cssClass = "status-bad"; }
+        }
+        else if (type === 'NC') {
+            if (value === 0) { text = "CONFORME"; cssClass = "status-good"; }
+            else if (value <= 25) { text = "MEJORABLE"; cssClass = "status-warn"; }
+            else { text = "NO CONFORME"; cssClass = "status-bad"; }
+        }
+        else if (type === 'MTBF') {
+            if (value >= 48) { text = "ESTABLE"; cssClass = "status-good"; }
+            else if (value >= 24) { text = "ALERTA"; cssClass = "status-warn"; }
+            else { text = "CRÍTICO"; cssClass = "status-bad"; }
+        }
+        else if (type === 'TPR') {
+            if (value < 200) { text = "EXCELENTE"; cssClass = "status-good"; }
+            else if (value < 1000) { text = "NORMAL"; cssClass = "status-warn"; }
+            else { text = "LENTO"; cssClass = "status-bad"; }
+        }
+        else if (type === 'IVC') {
+            if (value === 0) { text = "SEGURO"; cssClass = "status-good"; }
+            else if (value <= 15) { text = "RIESGO MODERADO"; cssClass = "status-warn"; }
+            else { text = "VULNERABLE"; cssClass = "status-bad"; }
+        }
+        else if (type === 'CC') {
+            if (value <= 10) { text = "LIMPIO"; cssClass = "status-good"; }
+            else if (value <= 20) { text = "COMPLEJO"; cssClass = "status-warn"; }
+            else { text = "INESCALABLE"; cssClass = "status-bad"; }
+        }
+        return `<span class="${cssClass}">${text}</span>`;
+    }
+
+    function calculate() {
+        // GET VALUES
+        let icp = (document.getElementById('icp_real').value / document.getElementById('icp_plan').value) * 100;
+        let nc = (document.getElementById('nc_detected').value / document.getElementById('nc_audit').value) * 100;
+        let mtbf = document.getElementById('mtbf_time').value / document.getElementById('mtbf_fails').value;
+        let tpr = document.getElementById('tpr_total').value / document.getElementById('tpr_req').value;
+        let ivc = (document.getElementById('ivc_crit').value / document.getElementById('ivc_total').value) * 100;
+        
+        let E = parseInt(document.getElementById('cc_e').value);
+        let N = parseInt(document.getElementById('cc_n').value);
+        let P = parseInt(document.getElementById('cc_p').value);
+        let cc = E - N + (2 * P);
+
+        // POPULATE TABLE
+        let tbody = document.querySelector('#summaryTable tbody');
+        tbody.innerHTML = `
+            <tr>
+                <td>Procesos (ISO 29110)</td>
+                <td>ICP (Cumplimiento)</td>
+                <td>${icp.toFixed(1)}%</td>
+                <td>${getStatus(icp, 'ICP')}</td>
+            </tr>
+            <tr>
+                <td>Gestión (ISO 9001)</td>
+                <td>NC (No Conformidad)</td>
+                <td>${nc.toFixed(1)}%</td>
+                <td>${getStatus(nc, 'NC')}</td>
+            </tr>
+            <tr>
+                <td>Fiabilidad (ISO 25010)</td>
+                <td>MTBF (Horas sin fallo)</td>
+                <td>${mtbf.toFixed(1)} Horas</td>
+                <td>${getStatus(mtbf, 'MTBF')}</td>
+            </tr>
+            <tr>
+                <td>Rendimiento (Efficiency)</td>
+                <td>TPR (Latencia prom.)</td>
+                <td>${tpr.toFixed(0)} ms</td>
+                <td>${getStatus(tpr, 'TPR')}</td>
+            </tr>
+            <tr>
+                <td>Seguridad (CISQ)</td>
+                <td>IVC (Vuln. Críticas)</td>
+                <td>${ivc.toFixed(1)}%</td>
+                <td>${getStatus(ivc, 'IVC')}</td>
+            </tr>
+            <tr>
+                <td>Mantenibilidad</td>
+                <td>CC (Complejidad)</td>
+                <td>${cc}</td>
+                <td>${getStatus(cc, 'CC')}</td>
+            </tr>
+        `;
+    }
+
+    function exportToCSV() {
+        // Obtener la tabla
+        const table = document.getElementById('summaryTable');
+        let csv = [];
+        
+        // Obtener encabezados
+        const headers = [];
+        const headerCells = table.querySelectorAll('thead th');
+        headerCells.forEach(cell => {
+            headers.push('"' + cell.textContent.trim() + '"');
+        });
+        csv.push(headers.join(','));
+        
+        // Obtener filas de datos
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const rowData = [];
+            const cells = row.querySelectorAll('td');
+            cells.forEach((cell, index) => {
+                // Para la columna de evaluación, extraer solo el texto sin HTML
+                if (index === 3) {
+                    const span = cell.querySelector('span');
+                    rowData.push('"' + (span ? span.textContent.trim() : cell.textContent.trim()) + '"');
+                } else {
+                    rowData.push('"' + cell.textContent.trim() + '"');
+                }
+            });
+            csv.push(rowData.join(','));
+        });
+        
+        // Crear el archivo CSV
+        const csvContent = csv.join('\n');
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        
+        // Generar nombre del archivo con fecha
+        const fecha = new Date().toISOString().split('T')[0];
+        const filename = `metricas_calidad_${fecha}.csv`;
+        
+        // Descargar
+        if (navigator.msSaveBlob) { // IE 10+
+            navigator.msSaveBlob(blob, filename);
+        } else {
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+
+    // Init
+    window.onload = loadProjectA;
+</script>
+
+</body>
+</html>
